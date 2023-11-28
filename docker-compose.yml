@@ -1,0 +1,48 @@
+version: '3'
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:18.0
+    ports:
+      - "8180:8180"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: 
+      - "start-dev"
+      - "--http-port=8180"
+    volumes:
+      - ./providers:/opt/keycloak/providers
+    networks:
+      - dcr-network
+  
+  app:
+    build:
+      args:
+        user: sammy
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: app-dcr
+    container_name: app-dcr
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./dcr-app:/var/www
+    networks:
+      - dcr-network
+  
+  nginx:
+    image: nginx:alpine
+    container_name: dcr-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./dcr-app:/var/www
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - dcr-network
+
+networks:
+  dcr-network:
+    driver: bridge
